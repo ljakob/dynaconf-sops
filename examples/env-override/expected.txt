@@ -1,0 +1,4 @@
+database.user: user-from-env
+database.password: db-password-from-sops
+cache.password: plain-from-env
+mail.password: mail-password-from-sops

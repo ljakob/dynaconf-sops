@@ -1,0 +1,5 @@
+FRESHRSS.password -> @sops mariadb:users.news.password
+REPORTING.password -> @sops mariadb:users.reporting.password
+verified: 2
+freshrss.password: news-password
+decrypted: ['news-password', 'reporting-password']

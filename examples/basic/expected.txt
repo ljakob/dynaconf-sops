@@ -1,0 +1,4 @@
+host: db.example.org
+user: app
+password: example-password
+port: 5432 int

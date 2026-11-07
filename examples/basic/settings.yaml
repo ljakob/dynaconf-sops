@@ -1,0 +1,5 @@
+database:
+  host: db.example.org
+  user: app
+  password: "@sops secrets/app.sops.yaml#database.password"
+  port: "@sops secrets/app.sops.yaml#database.port"

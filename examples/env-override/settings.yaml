@@ -1,0 +1,7 @@
+LOADERS_FOR_DYNACONF: ["dynaconf.loaders.env_loader", "dynaconf_sops.loader"]
+
+database:
+  user: app
+  password: "@sops secrets/app.sops.yaml#database.password"
+cache:
+  password: "@sops secrets/app.sops.yaml#cache.password"

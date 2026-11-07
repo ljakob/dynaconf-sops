@@ -1,0 +1,8 @@
+LOADERS_FOR_DYNACONF: ["dynaconf.loaders.env_loader", "dynaconf_sops.loader"]
+
+# "<name>:<path>" means "$DYNACONF_SOPS_DIR/<name>.sops.yaml", key path <path>.
+freshrss:
+  user: news
+  password: "@sops mariadb:users.news.password"
+reporting:
+  password: "@sops mariadb:users.reporting.password"

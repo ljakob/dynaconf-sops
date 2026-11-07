@@ -1,0 +1,8 @@
+# Zero-code activation: Dynaconf imports the loader, the application code does
+# not know about dynaconf-sops at all. Keep the env loader in the list.
+LOADERS_FOR_DYNACONF: ["dynaconf.loaders.env_loader", "dynaconf_sops.loader"]
+
+api:
+  url: https://api.example.org
+  token: "@sops secrets/api.sops.json#api.token"
+  scopes: "@sops secrets/api.sops.json#api.scopes"
