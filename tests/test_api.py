@@ -8,6 +8,7 @@ import dynaconf_sops
 import dynaconf_sops.loader
 
 PUBLIC = {
+    "TOKEN",
     "register",
     "SopsError",
     "verify",
@@ -24,7 +25,7 @@ def test_all_is_exact() -> None:
 
 
 def test_public_names_have_docstrings() -> None:
-    for name in PUBLIC - {"__version__"}:
+    for name in PUBLIC - {"__version__", "TOKEN"}:
         obj = getattr(dynaconf_sops, name)
         assert inspect.getdoc(obj), name
     assert inspect.getdoc(dynaconf_sops.loader.load)
@@ -39,6 +40,7 @@ def test_no_other_public_attributes() -> None:
         if not n.startswith("_") and not inspect.ismodule(getattr(dynaconf_sops, n))
     }
     assert public == PUBLIC - {"__version__"}
+    assert dynaconf_sops.TOKEN == "@sops"
     submodules = {n for n in vars(dynaconf_sops) if inspect.ismodule(getattr(dynaconf_sops, n))}
     assert {m for m in submodules if not m.startswith("_")} <= {"loader"}
 

@@ -63,6 +63,20 @@ inside decrypted maps and lists. Intended for log redaction filters.
 
 Forget all cached values and empty `secret_values()`.
 
+### `TOKEN: str`
+
+The token `"@sops"`. A reference in settings is `TOKEN`, a space and the
+reference text. Use it instead of hard-coding the string, e.g. to reject
+references where they are not allowed:
+
+```python
+import dynaconf_sops
+
+
+def is_reference(value: object) -> bool:
+    return isinstance(value, str) and value.startswith(dynaconf_sops.TOKEN + " ")
+```
+
 ### `__version__: str`
 
 The installed distribution version.

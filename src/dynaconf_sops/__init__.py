@@ -7,12 +7,15 @@ Reference values in SOPS-encrypted files directly from your settings::
 
 Importing this package registers the ``@sops`` converter. Alternatively, add
 ``dynaconf_sops.loader`` to ``LOADERS_FOR_DYNACONF`` for zero-code activation.
+
+``TOKEN`` is the token string ``"@sops"``, for code that checks settings for
+references (a reference is ``TOKEN`` followed by a space and the reference).
 """
 
 import importlib.metadata as _metadata
 
 from ._cache import clear_cache, secret_values
-from ._converter import register
+from ._converter import TOKEN, register
 from ._errors import SopsError
 from ._helpers import references, verify
 
@@ -24,6 +27,7 @@ except _metadata.PackageNotFoundError:  # pragma: no cover - only when not insta
 register()
 
 __all__ = [
+    "TOKEN",
     "SopsError",
     "__version__",
     "clear_cache",
