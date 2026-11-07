@@ -16,6 +16,7 @@ from importlib.metadata import PackageNotFoundError, version
 from ._cache import clear_cache, secret_values
 from ._converter import register
 from ._errors import SopsError
+from ._helpers import references, verify
 
 try:
     __version__ = version("dynaconf-sops")
@@ -28,6 +29,8 @@ __all__ = [
     "SopsError",
     "__version__",
     "clear_cache",
+    "references",
     "register",
     "secret_values",
+    "verify",
 ]
