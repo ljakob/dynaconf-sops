@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+
+# Tools
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Dynaconf local secrets (never commit)
+.secrets.yaml
+.secrets.toml
+.secrets.json
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Note: *.sops.* files are encrypted and intentionally NOT ignored.
