@@ -11,10 +11,10 @@ from dynaconf import Dynaconf
 ROOT = Path(__file__).resolve().parents[1]
 GITHUB = "https://github.com/ljakob/dynaconf-sops/blob/main/"
 DOCS = sorted((ROOT / "docs").glob("*.md"))
-PAGES = [ROOT / "README.md", *DOCS]
+PAGES = [ROOT / n for n in ("README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md")]
+PAGES += DOCS
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 BLOCK = re.compile(r"^```(\w+)\n(.*?)^```", re.MULTILINE | re.DOTALL)
-PENDING = {"CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md"}  # added with the project files
 
 
 def _slug(heading: str) -> str:
@@ -52,8 +52,6 @@ def test_links_resolve(page: Path) -> None:
         if resolved is None:
             continue
         path, anchor = resolved
-        if path.name in PENDING and not path.exists():
-            continue
         assert path.exists(), f"{page.name}: broken link {target}"
         if anchor:
             assert anchor in _anchors(path), f"{page.name}: missing anchor {target}"
