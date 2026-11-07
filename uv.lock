@@ -373,7 +373,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "dynaconf", specifier = ">=3.2,<4" }]
+requires-dist = [{ name = "dynaconf", specifier = ">=3.2.2,<4" }]
 
 [package.metadata.requires-dev]
 dev = [

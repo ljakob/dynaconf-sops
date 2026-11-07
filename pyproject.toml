@@ -29,7 +29,7 @@ classifiers = [
     "Topic :: System :: Systems Administration",
     "Typing :: Typed",
 ]
-dependencies = ["dynaconf>=3.2,<4"]
+dependencies = ["dynaconf>=3.2.2,<4"]
 
 [project.urls]
 Homepage = "https://github.com/ljakob/dynaconf-sops"
