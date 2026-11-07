@@ -11,7 +11,10 @@ from dynaconf import Dynaconf
 ROOT = Path(__file__).resolve().parents[1]
 GITHUB = "https://github.com/ljakob/dynaconf-sops/blob/main/"
 DOCS = sorted((ROOT / "docs").glob("*.md"))
-PAGES = [ROOT / n for n in ("README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md")]
+PAGES = [
+    ROOT / n
+    for n in ("README.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", "RELEASING.md")
+]
 PAGES += DOCS
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 BLOCK = re.compile(r"^```(\w+)\n(.*?)^```", re.MULTILINE | re.DOTALL)

@@ -60,6 +60,7 @@ include = [
     "LICENSE",
     "CHANGELOG.md",
     "SECURITY.md",
+    "CONTRIBUTING.md",
 ]
 
 [tool.ruff]
