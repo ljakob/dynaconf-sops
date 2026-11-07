@@ -46,8 +46,13 @@ values are cached.
 
 Map each setting holding a reference to the reference text, without
 decrypting: `{"DATABASE.password": "@sops mariadb:users.app.password"}`.
-Top-level keys are upper case (as Dynaconf stores them), list items appear as
-`[i]`, combined forms as `@sops @format ...`.
+
+Key format: segments joined with `.`; the **top-level key is upper case**
+because Dynaconf stores it that way (`database` and `DATABASE` are the same
+key, the original spelling is not kept); nested keys appear exactly as written
+in the settings; list items appear as `[i]` (`DATABASE.replicas[0]`). To
+compare with your own lower-case names, lower-case the first segment.
+Combined forms are shown as `@sops @format ...`.
 
 ### `secret_values() -> frozenset[str]`
 

@@ -207,3 +207,5 @@ before the record is logged.
 | `SopsError: ... exit code 1: error truncating tree: component ['x'] not found` | the key path does not exist in the file |
 | `KeyError: '@sopsfoo'` while loading (Dynaconf < 3.3.2) | Dynaconf bug: a string that starts with a registered token. Upgrade Dynaconf. |
 | `sops` decrypts during `Dynaconf(..., validators=[...])` | see [Validators and merges](#validators-and-merges) |
+| a settings file loads nothing, no error | Dynaconf skips files with an unknown suffix (`.yaml.new`, `.bak`, `.txt`); use `.yaml`/`.yml`/`.toml`/`.json` |
+| sops runs while loading although nothing was accessed | import mode plus an env override of a sibling key; see [integration.md](integration.md#pitfalls) |

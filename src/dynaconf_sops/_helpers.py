@@ -17,8 +17,11 @@ def _store(settings: Any) -> Any:
 def references(settings: Any) -> dict[str, str]:
     """Map each setting that holds a ``@sops`` reference to the reference text.
 
-    Keys are dotted paths as stored by Dynaconf (top-level keys upper case, list
-    items as ``[i]``), e.g. ``{"DATABASE.password": "@sops mariadb:users.app.password"}``.
+    Keys are dotted paths in Dynaconf's spelling: the top-level key is upper
+    case (Dynaconf normalises it and does not keep the original spelling),
+    nested keys are exactly as written, list items appear as ``[i]``. Example:
+    ``{"DATABASE.password": "@sops mariadb:users.app.password",
+    "DATABASE.replicas[0]": "@sops mariadb:replica.password"}``.
     Nothing is decrypted; the result never contains a value.
     """
     return {

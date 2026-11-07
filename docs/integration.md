@@ -60,6 +60,29 @@ freshrss:
 - If a job must decrypt real files, give it a dedicated key that can decrypt
   only what the job needs.
 
+## Pitfalls
+
+- **The env loader can decrypt a section.** With `import dynaconf_sops` and
+  Dynaconf's default env loader, an override of a key *next to* a reference
+  (`APP_FRESHRSS__HOST=...` while `freshrss.password` is a reference) makes
+  Dynaconf merge the whole `freshrss` section while loading. On Dynaconf 3.2.x
+  and 3.3.3 or later that merge evaluates the reference, so sops runs (and
+  fails without a key) at load time. Remedies: activate through the loader
+  instead of the import (it runs after the env loader), or disable Dynaconf's
+  loaders (`loaders=[]`) and apply environment overrides yourself. See
+  [usage.md](usage.md#validators-and-merges).
+- **Environment values are parsed as TOML.** Dynaconf turns `APP_PORT=8080`
+  into an `int`, `APP_FLAG=true` into a `bool` and `APP_LIST=[1,2]` into a
+  list. Quote a value (`APP_TOKEN='"0123"'`) or use `@str` to keep it a string.
+- **Unknown file suffixes are skipped silently.** Dynaconf loads a settings
+  file only if it knows the suffix (`.yaml`, `.yml`, `.toml`, `.json`, `.ini`,
+  `.py`, ...). A renamed or backup file such as `.secrets.yaml.new` or
+  `secrets.txt` loads nothing and raises nothing. If your service builds the
+  file list itself, reject unexpected suffixes.
+- **Non-login shells.** cron, systemd units, IDE terminals and tool shells
+  usually do not read `~/.profile`, so `DYNACONF_SOPS_DIR` may be unset there.
+  Set it in the unit/crontab, or use explicit paths in the references.
+
 ## Worked example: a news classifier service
 
 The secrets live in a shared SOPS file `mariadb.sops.yaml` (before
