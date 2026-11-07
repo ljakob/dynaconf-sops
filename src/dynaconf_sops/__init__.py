@@ -9,9 +9,7 @@ Importing this package registers the ``@sops`` converter. Alternatively, add
 ``dynaconf_sops.loader`` to ``LOADERS_FOR_DYNACONF`` for zero-code activation.
 """
 
-from __future__ import annotations
-
-from importlib.metadata import PackageNotFoundError, version
+import importlib.metadata as _metadata
 
 from ._cache import clear_cache, secret_values
 from ._converter import register
@@ -19,8 +17,8 @@ from ._errors import SopsError
 from ._helpers import references, verify
 
 try:
-    __version__ = version("dynaconf-sops")
-except PackageNotFoundError:  # pragma: no cover - only when not installed
+    __version__: str = _metadata.version("dynaconf-sops")
+except _metadata.PackageNotFoundError:  # pragma: no cover - only when not installed
     __version__ = "0.0.0"
 
 register()
