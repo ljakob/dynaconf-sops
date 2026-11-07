@@ -3,16 +3,21 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from importlib.metadata import version as _version
 from pathlib import Path
 
 import pytest
 
 from dynaconf_sops._config import find_sops
 from dynaconf_sops._errors import SopsError
+
+DYNACONF_VERSION = tuple(int(re.match(r"\d+", p)[0]) for p in _version("dynaconf").split(".")[:3])
+"""(major, minor, patch) of the installed Dynaconf, for version-specific behaviour."""
 
 ENV_VARS = (
     "DYNACONF_SOPS_DIR",
@@ -167,3 +172,17 @@ def write(tmp_path: Path) -> Callable[[str, str], Path]:
         return path
 
     return _write
+
+
+LOADERS = '["dynaconf.loaders.env_loader", "dynaconf_sops.loader"]'
+
+
+@pytest.fixture
+def unregistered(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Simulate a process that never imported dynaconf_sops (loader-only activation)."""
+    from dynaconf.utils.parse_conf import converters
+
+    from dynaconf_sops import _converter
+
+    monkeypatch.delitem(converters, "@sops")
+    monkeypatch.setattr(_converter, "_registered", False)

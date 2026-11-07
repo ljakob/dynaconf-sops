@@ -10,7 +10,7 @@ from dynaconf.utils.parse_conf import converters
 import dynaconf_sops
 from dynaconf_sops import SopsError, _converter
 
-from .conftest import CountingSops, MakeSops
+from .conftest import DYNACONF_VERSION, CountingSops, MakeSops
 
 Write = Callable[[str, str], Path]
 
@@ -135,7 +135,13 @@ database:
     [
         ('"@sops @format {env[SECRETS_HOME]}/mariadb.sops.yaml#a.b"', "mariadb.sops.yaml"),
         ('"@sops @jinja {{ this.SECRETS_DIR }}/mariadb.sops.yaml#a.b"', "mariadb.sops.yaml"),
-        ('"@sops @get REF"', "mariadb.sops.yaml"),
+        pytest.param(
+            '"@sops @get REF"',
+            "mariadb.sops.yaml",
+            marks=pytest.mark.skipif(
+                DYNACONF_VERSION < (3, 3, 0), reason="Dynaconf 3.2 combines only @format/@jinja"
+            ),
+        ),
     ],
 )
 def test_combined_with_lazy_formatters(
@@ -226,11 +232,22 @@ def test_error_on_access_not_load(write: Write, tmp_path: Path) -> None:
 
 
 def test_plain_values_untouched(write: Write) -> None:
-    cfg = write(
-        "settings.yaml",
-        'a: "@sopsy not a token"\nb: "mail@sops.example"\nc: 1\n',
-    )
+    cfg = write("settings.yaml", 'b: "mail@sops.example"\nc: 1\n')
     settings = Dynaconf(settings_files=[cfg])
-    assert settings.a == "@sopsy not a token"
     assert settings.b == "mail@sops.example"
     assert settings.c == 1
+
+
+@pytest.mark.skipif(DYNACONF_VERSION < (3, 3, 2), reason="see test_prefix_crash_before_332")
+def test_token_prefix_is_not_a_token(write: Write) -> None:
+    settings = Dynaconf(settings_files=[write("settings.yaml", 'a: "@sopsy not a token"\n')])
+    assert settings.a == "@sopsy not a token"
+
+
+@pytest.mark.skipif(DYNACONF_VERSION >= (3, 3, 2), reason="fixed in Dynaconf 3.3.2")
+def test_prefix_crash_before_332(write: Write) -> None:
+    # Dynaconf < 3.3.2 matches converters with str.startswith: any registered token
+    # (also built-ins such as @int) breaks strings like "@intx". Documented.
+    settings = Dynaconf(settings_files=[write("settings.yaml", 'a: "@sopsy not a token"\n')])
+    with pytest.raises(KeyError):
+        _ = settings.a
