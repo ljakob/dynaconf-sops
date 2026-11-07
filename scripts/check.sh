@@ -67,6 +67,14 @@ build_and_twine() {
     uv build --quiet --out-dir "$out" && uvx --quiet twine check --strict "$out"/*
 }
 
+actionlint() {
+    if ! compgen -G ".github/workflows/*.yml" >/dev/null; then
+        echo "(no workflows)"
+        return 0
+    fi
+    uvx --quiet --from actionlint-py actionlint .github/workflows/*.yml
+}
+
 matrix() {
     if [[ -x scripts/matrix.sh ]]; then
         scripts/matrix.sh
@@ -81,6 +89,7 @@ stage "mypy --strict" uv run --quiet mypy --strict src
 stage "pytest + coverage" uv run --quiet pytest -q --cov --cov-report=term --cov-fail-under=90
 stage "examples" run_examples
 stage "secret scan" scripts/scan-secrets.sh
+stage "actionlint" actionlint
 stage "ascii in src" ascii_only
 if [[ $quick -eq 0 ]]; then
     stage "build + twine check" build_and_twine
