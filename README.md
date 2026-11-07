@@ -109,7 +109,7 @@ process see `@sops` at parse time and behave like option B.
 | Reference | Meaning |
 |---|---|
 | `@sops <file>#<path>` | `file` is absolute, `~`-expanded, or relative to `DYNACONF_SOPS_DIR` (else the current directory) |
-| `@sops <name>:<path>` | shorthand for `<DYNACONF_SOPS_DIR>/<name>.sops.yaml`; `name` is `[A-Za-z0-9_.-]+` |
+| `@sops <name>:<path>` | shorthand for `<DYNACONF_SOPS_DIR>/<name>.sops.yaml`; `name` is `[A-Za-z0-9_.-]+`; needs a sops dir (`DYNACONF_SOPS_DIR` or `register(sops_dir=...)`), otherwise `SopsError` on access |
 
 | Path | sops `--extract` |
 |---|---|
@@ -134,7 +134,7 @@ export APP_DATABASE__PASSWORD='@sops mariadb:users.app.password'
 
 | `register()` argument | Environment variable | Default |
 |---|---|---|
-| `sops_dir` | `DYNACONF_SOPS_DIR` | none: relative files are relative to the current directory |
+| `sops_dir` | `DYNACONF_SOPS_DIR` | none: relative files are relative to the current directory, `name:path` references fail with a clear error |
 | `sops_bin` | `DYNACONF_SOPS_BIN` | `sops` on `PATH`, then `~/.local/bin/sops`, `/usr/local/bin/sops`, `/usr/bin/sops` |
 | `timeout` | `DYNACONF_SOPS_TIMEOUT` | `30` seconds per sops call |
 

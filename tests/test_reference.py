@@ -63,11 +63,35 @@ class TestNameForm:
         assert ref.file == tmp_path / "mariadb.sops.yaml"
         assert ref.expr == '["users"]["app"]["password"]'
 
-    def test_without_sops_dir_uses_cwd(
+    @pytest.mark.parametrize("sops_dir", [None, ""])
+    def test_requires_sops_dir(self, sops_dir: str | None) -> None:
+        with pytest.raises(SopsError) as info:
+            parse_reference("db:users.app.pw", sops_dir=sops_dir)
+        msg = str(info.value)
+        assert msg.startswith("@sops db:users.app.pw: the shorthand 'name:path' needs a sops dir")
+        assert "DYNACONF_SOPS_DIR is not set" in msg
+        assert "register(sops_dir=...)" in msg
+        assert "'db.sops.yaml#users.app.pw'" in msg
+        assert info.value.reference == "db:users.app.pw"
+        assert info.value.path == "users.app.pw"
+        assert info.value.file is None
+
+    def test_records_sops_dir_and_source(self, tmp_path: Path) -> None:
+        ref = parse_reference("db:pw", sops_dir=tmp_path, sops_dir_source="register(sops_dir=...)")
+        assert ref.sops_dir == tmp_path
+        assert ref.sops_dir_source == "register(sops_dir=...)"
+
+    def test_explicit_relative_without_sops_dir_uses_cwd(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
     ) -> None:
         monkeypatch.chdir(tmp_path)
-        assert parse_reference("db:pw").file == tmp_path / "db.sops.yaml"
+        ref = parse_reference("db.sops.yaml#pw")
+        assert ref.file == tmp_path / "db.sops.yaml"
+        assert ref.sops_dir is None
+        assert ref.sops_dir_source is None
+
+    def test_absolute_has_no_sops_dir(self, tmp_path: Path) -> None:
+        assert parse_reference("/a/b.sops.yaml#k", sops_dir=tmp_path).sops_dir is None
 
     @pytest.mark.parametrize("name", ["a", "A_b-c.d", "x1", "my.app"])
     def test_allowed_names(self, name: str, tmp_path: Path) -> None:

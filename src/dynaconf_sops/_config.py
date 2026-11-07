@@ -60,6 +60,10 @@ class Settings:
         """Only the SOPS directory (needed to parse a reference)."""
         return _resolve_dir(self.sops_dir)
 
+    def dir_source(self) -> str:
+        """Where the SOPS directory comes from, for error messages."""
+        return "register(sops_dir=...)" if self.sops_dir is not None else ENV_DIR
+
 
 def _resolve_dir(explicit: str | os.PathLike[str] | None) -> Path | None:
     value = os.fspath(explicit) if explicit is not None else os.environ.get(ENV_DIR, "")

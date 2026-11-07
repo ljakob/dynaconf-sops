@@ -24,7 +24,7 @@ _registered = False
 def resolve(text: str) -> Any:
     """Resolve the reference text after the ``@sops`` token to its value."""
     settings = _settings
-    ref = parse_reference(str(text), settings.resolve_dir())
+    ref = parse_reference(str(text), settings.resolve_dir(), settings.dir_source())
     return lookup(ref, settings.resolve)
 
 

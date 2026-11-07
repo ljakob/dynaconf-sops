@@ -251,3 +251,52 @@ def test_prefix_crash_before_332(write: Write) -> None:
     settings = Dynaconf(settings_files=[write("settings.yaml", 'a: "@sopsy not a token"\n')])
     with pytest.raises(KeyError):
         _ = settings.a
+
+
+class TestSopsDirMessages:
+    """W1 (consumer feedback): the shorthand needs a sops dir, messages name its source."""
+
+    def test_shorthand_without_sops_dir_fails_on_access(self, write: Write) -> None:
+        cfg = write("s.yaml", 'plain: ok\npw: "@sops mariadb:users.app.password"\n')
+        settings = Dynaconf(settings_files=[cfg])
+        assert settings.plain == "ok"
+        with pytest.raises(SopsError, match="DYNACONF_SOPS_DIR is not set"):
+            _ = settings.pw
+
+    def test_explicit_relative_path_still_uses_cwd(
+        self,
+        write: Write,
+        tmp_path: Path,
+        counting_sops: CountingSops,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        (tmp_path / "local.sops.yaml").write_text("x: 1\n")
+        monkeypatch.chdir(tmp_path)
+        cfg = write("s.yaml", 'pw: "@sops local.sops.yaml#a"\n')
+        assert Dynaconf(settings_files=[cfg]).pw == 'value-["a"]'
+
+    def test_missing_sops_dir_named_with_source(
+        self, write: Write, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("DYNACONF_SOPS_DIR", str(tmp_path / "typo"))
+        settings = Dynaconf(settings_files=[write("s.yaml", 'pw: "@sops mariadb:a"\n')])
+        with pytest.raises(SopsError) as info:
+            _ = settings.pw
+        assert f"sops dir {tmp_path / 'typo'} (from DYNACONF_SOPS_DIR) does not exist" in str(
+            info.value
+        )
+
+    def test_file_not_found_names_sops_dir_and_source(self, write: Write, tmp_path: Path) -> None:
+        d = tmp_path / "sops"
+        d.mkdir()
+        dynaconf_sops.register(sops_dir=d)
+        settings = Dynaconf(settings_files=[write("s.yaml", 'pw: "@sops mariadb:a"\n')])
+        with pytest.raises(SopsError) as info:
+            _ = settings.pw
+        assert f"SOPS file not found (sops dir {d} from register(sops_dir=...))" in str(info.value)
+
+    def test_verify_reports_missing_sops_dir_per_key(self, write: Write) -> None:
+        cfg = write("s.yaml", 'a: "@sops mariadb:x"\nb: plain\n')
+        with pytest.raises(SopsError) as info:
+            dynaconf_sops.verify(Dynaconf(settings_files=[cfg]))
+        assert "A: @sops mariadb:x: the shorthand 'name:path' needs a sops dir" in str(info.value)

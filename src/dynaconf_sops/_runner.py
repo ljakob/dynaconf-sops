@@ -81,6 +81,15 @@ def _text(ref: Reference, data: bytes) -> str:
     raise _fail(ref, "decrypted value is not valid UTF-8")
 
 
+def _not_found(ref: Reference) -> str:
+    if ref.sops_dir is None:
+        return "SOPS file not found"
+    source = ref.sops_dir_source or "sops dir"
+    if not ref.sops_dir.is_dir():
+        return f"sops dir {ref.sops_dir} (from {source}) does not exist"
+    return f"SOPS file not found (sops dir {ref.sops_dir} from {source})"
+
+
 def decrypt(ref: Reference, config: Config) -> Any:
     """Decrypt the value a reference points to, keeping its type.
 
@@ -92,7 +101,7 @@ def decrypt(ref: Reference, config: Config) -> Any:
     JSON.
     """
     if not ref.file.is_file():
-        raise _fail(ref, "SOPS file not found")
+        raise _fail(ref, _not_found(ref))
     logger.debug("decrypting %s path %r", ref.file, ref.path)
 
     if ref.expr is None:

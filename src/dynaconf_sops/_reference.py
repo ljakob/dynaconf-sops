@@ -25,12 +25,17 @@ class Reference:
         file: Absolute path of the SOPS file.
         path: The key path as written (dotted keys or a ``[...]`` expression).
         expr: The sops ``--extract`` expression, or ``None`` for the whole document.
+        sops_dir: The SOPS directory the file was resolved against, or ``None``
+            (absolute path, or relative to the current directory).
+        sops_dir_source: Where ``sops_dir`` came from (for error messages).
     """
 
     text: str
     file: Path
     path: str
     expr: str | None
+    sops_dir: Path | None = None
+    sops_dir_source: str | None = None
 
 
 def _error(text: str, reason: str, *, path: str | None = None) -> SopsError:
@@ -69,18 +74,24 @@ def build_expression(text: str, path: str) -> str | None:
     return "".join(parts)
 
 
-def parse_reference(text: str, sops_dir: Path | str | None = None) -> Reference:
+def parse_reference(
+    text: str, sops_dir: Path | str | None = None, sops_dir_source: str = "DYNACONF_SOPS_DIR"
+) -> Reference:
     """Parse a reference into file, path and extract expression.
 
     Two forms are accepted:
 
     * ``<file>#<path>``: ``file`` is absolute, ``~``-expanded, or relative to
       ``sops_dir`` (or the current directory if ``sops_dir`` is ``None``).
-    * ``<name>:<path>``: shorthand for ``<sops_dir>/<name>.sops.yaml``.
+    * ``<name>:<path>``: shorthand for ``<sops_dir>/<name>.sops.yaml``; needs
+      a ``sops_dir``.
+
+    ``sops_dir_source`` names where ``sops_dir`` comes from, for messages.
 
     Raises:
-        SopsError: if the reference is malformed. The message contains the
-            reference, never a value.
+        SopsError: if the reference is malformed, or a shorthand is used
+            without a ``sops_dir``. The message contains the reference, never
+            a value.
     """
     text = text.strip()
     if not text:
@@ -101,12 +112,33 @@ def parse_reference(text: str, sops_dir: Path | str | None = None) -> Reference:
             )
         file_part = match["name"] + SOPS_SUFFIX
         path = match["path"]
+        if not sops_dir:
+            explicit = f"{file_part}#{path.strip()}"
+            raise SopsError(
+                f"@sops {text}: the shorthand 'name:path' needs a sops dir, but "
+                f"{sops_dir_source} is not set (set it, call "
+                f"dynaconf_sops.register(sops_dir=...), or write an explicit path "
+                f"{explicit!r})",
+                reference=text,
+                path=path.strip(),
+            )
 
     path = path.strip()
     expr = build_expression(text, path)
 
     file = Path(os.path.expanduser(file_part))
+    base: Path | None = None
     if not file.is_absolute():
-        base = Path(os.path.expanduser(str(sops_dir))) if sops_dir else Path.cwd()
-        file = base / file
-    return Reference(text=text, file=Path(os.path.abspath(file)), path=path, expr=expr)
+        if sops_dir:
+            base = Path(os.path.abspath(os.path.expanduser(str(sops_dir))))
+            file = base / file
+        else:
+            file = Path.cwd() / file
+    return Reference(
+        text=text,
+        file=Path(os.path.abspath(file)),
+        path=path,
+        expr=expr,
+        sops_dir=base,
+        sops_dir_source=sops_dir_source if base is not None else None,
+    )

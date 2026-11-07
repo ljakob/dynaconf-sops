@@ -74,8 +74,14 @@ database:
 ```
 
 - `<file>#<path>`: the first `#` separates file and path.
-- `<name>:<path>`: `<sops dir>/<name>.sops.yaml`. Without `DYNACONF_SOPS_DIR`
-  the current directory is used.
+- `<name>:<path>`: `<sops dir>/<name>.sops.yaml`. It needs a sops dir
+  (`DYNACONF_SOPS_DIR` or `register(sops_dir=...)`); without one, accessing
+  the value raises `SopsError: ... the shorthand 'name:path' needs a sops dir,
+  but DYNACONF_SOPS_DIR is not set ...`. There is no fallback to the current
+  directory, because in a cron job or IDE terminal that does not read your
+  profile it would only produce a misleading "file not found".
+- If the sops dir is set but does not exist, the error says so and names where
+  it came from; a missing file names the sops dir and its source as well.
 - Dotted path segments are keys; an all-digit segment is a list index.
 - A path starting with `[` is handed to `sops --extract` verbatim; use it for
   keys containing `.`, `[`, `]` or `"`.
@@ -202,6 +208,8 @@ before the record is logged.
 |---|---|
 | value is the literal string `"@sops ..."` | not activated: loader missing from `LOADERS_FOR_DYNACONF`, or `import dynaconf_sops` happened after the settings were loaded. `verify()` reports it. |
 | `ModuleNotFoundError: No module named 'dynaconf_sops'` | the loader is listed but the package is not installed in this environment |
+| `SopsError: ... the shorthand 'name:path' needs a sops dir, but DYNACONF_SOPS_DIR is not set` | the variable is missing in this shell (cron, systemd, IDE terminals often skip `~/.profile`); set it there or use an explicit path |
+| `SopsError: ... sops dir /x (from DYNACONF_SOPS_DIR) does not exist` | typo in the variable, or the directory is not checked out on this machine |
 | `SopsError: ... sops binary not found` | install sops or set `DYNACONF_SOPS_BIN` |
 | `SopsError: ... exit code 128: Failed to get the data key ...` | no key that can decrypt the file (`SOPS_AGE_KEY_FILE`, `~/.config/sops/age/keys.txt`, KMS credentials) |
 | `SopsError: ... exit code 1: error truncating tree: component ['x'] not found` | the key path does not exist in the file |

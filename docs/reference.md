@@ -15,7 +15,7 @@ value. Explicit values win over the environment variables below.
 
 | Argument | Type | Meaning |
 |---|---|---|
-| `sops_dir` | `str \| os.PathLike \| None` | base directory for relative files and `name:path` references; `~` is expanded |
+| `sops_dir` | `str \| os.PathLike \| None` | base directory for relative files and `name:path` references (required for the latter); `~` is expanded |
 | `sops_bin` | `str \| os.PathLike \| None` | path of the sops binary, or a command name looked up on `PATH` |
 | `timeout` | `float \| None` | seconds for one sops call, must be greater than 0 |
 
@@ -80,7 +80,7 @@ Nothing is decrypted.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DYNACONF_SOPS_DIR` | unset (current directory) | base directory for relative files and `name:path` |
+| `DYNACONF_SOPS_DIR` | unset | base directory for relative files (else the current directory); **required** for `name:path` |
 | `DYNACONF_SOPS_BIN` | `sops` on `PATH`, then `~/.local/bin/sops`, `/usr/local/bin/sops`, `/usr/bin/sops` | sops binary (path or command name) |
 | `DYNACONF_SOPS_TIMEOUT` | `30` | seconds per sops call |
 | `LOADERS_FOR_DYNACONF` | Dynaconf default | Dynaconf's own setting; add `dynaconf_sops.loader` for zero-code activation |
@@ -95,7 +95,7 @@ unchanged.
 reference  := "@sops" " " [formatter " "] target
 formatter  := "@format" | "@jinja" | "@get" | "@read_file"   (Dynaconf decides, see below)
 target     := file "#" path | name ":" path
-name       := [A-Za-z0-9_.-]+                 -> <sops dir>/<name>.sops.yaml
+name       := [A-Za-z0-9_.-]+                 -> <sops dir>/<name>.sops.yaml (sops dir required)
 path       := ""                              -> whole document
             | segment ("." segment)*          -> ["seg"]..., all-digit segment -> [n]
             | "[" ... "]"                     -> passed verbatim to sops --extract
