@@ -207,7 +207,7 @@ Details: [docs/security.md](https://github.com/ljakob/dynaconf-sops/blob/main/do
 | Python | 3.10 to 3.14 |
 | Dynaconf | 3.2.2 or later, below 4 (some combinations need 3.3, see the reference) |
 | sops | 3.x on `PATH` or configured (tested with 3.13) |
-| OS | Linux and macOS |
+| OS | Linux (tested); other POSIX systems such as macOS are expected to work but are untested |
 
 ## Documentation
 

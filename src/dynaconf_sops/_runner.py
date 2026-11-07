@@ -19,7 +19,7 @@ _MAX_STDERR = 200
 
 
 def first_line(stderr: bytes) -> str:
-    """First non-empty line of sops' stderr, printable ASCII-safe, truncated."""
+    """First non-empty line of sops' stderr, non-printable characters replaced, truncated."""
     text = stderr.decode("utf-8", errors="replace")
     for line in text.splitlines():
         line = line.strip()
