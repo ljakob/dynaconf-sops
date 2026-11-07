@@ -125,3 +125,43 @@ def test_secret_values_feed_a_redaction_filter(
     with caplog.at_level(logging.INFO, logger="test.redact"):
         logger.info("connecting with %s", password)
     assert caplog.messages == ["connecting with ***"]
+
+
+def test_check_returns_failures_by_key(write: Write, secrets: Path, tmp_path: Path) -> None:
+    content = (
+        SETTINGS
+        + 'bad1: "@sops mariadb:users.nobody.password"\n'
+        + f'nested:\n  bad2: "@sops {tmp_path}/missing.sops.yaml#x"\n'
+    )
+    settings = Dynaconf(settings_files=[write("s.yaml", content)])
+    failures = dynaconf_sops.check(settings)
+    assert set(failures) == {"BAD1", "NESTED.bad2"}
+    assert all(isinstance(e, SopsError) for e in failures.values())
+    assert failures["BAD1"].returncode == 1
+    assert "missing.sops.yaml" in str(failures["NESTED.bad2"])
+    assert set(failures) <= set(dynaconf_sops.references(settings))
+    for exc in failures.values():
+        for secret in ("app-pw", "other-pw", "tok-123"):
+            assert secret not in str(exc)
+    # the good references resolved and stay usable, from the cache
+    assert settings.database.password == "app-pw"
+    assert dynaconf_sops.secret_values() == {"tok-123", "app-pw", "other-pw"}
+
+
+def test_check_all_good_and_empty(write: Write, secrets: Path) -> None:
+    assert dynaconf_sops.check(Dynaconf(settings_files=[write("s.yaml", SETTINGS)])) == {}
+    assert dynaconf_sops.check(Dynaconf(settings_files=[write("p.yaml", "a: 1\n")])) == {}
+
+
+def test_check_reports_unconverted(write: Write, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delitem(converters, "@sops")
+    settings = Dynaconf(settings_files=[write("s.yaml", 'db:\n  password: "@sops x:y"\n')])
+    assert "was not converted" in str(dynaconf_sops.check(settings)["DB.password"])
+
+
+def test_verify_is_check_plus_raise(write: Write, secrets: Path) -> None:
+    settings = Dynaconf(settings_files=[write("s.yaml", 'a: "@sops mariadb:nope"\nb: "@sops x"\n')])
+    failures = dynaconf_sops.check(settings)
+    with pytest.raises(SopsError) as info:
+        dynaconf_sops.verify(settings)
+    assert [str(e) for e in info.value.errors] == [str(e) for e in failures.values()]

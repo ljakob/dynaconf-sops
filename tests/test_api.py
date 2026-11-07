@@ -14,6 +14,7 @@ PUBLIC = {
     "verify",
     "secret_values",
     "references",
+    "check",
     "clear_cache",
     "__version__",
 }

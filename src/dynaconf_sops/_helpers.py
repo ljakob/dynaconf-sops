@@ -1,4 +1,4 @@
-"""``verify()`` and ``references()`` (D-11)."""
+"""``verify()``, ``check()`` and ``references()`` (D-11)."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from typing import Any
 from ._errors import SopsError
 from ._walk import describe, is_reference_lazy, is_reference_string, iter_items
 
-__all__ = ["references", "verify"]
+__all__ = ["check", "references", "verify"]
 
 
 def _store(settings: Any) -> Any:
@@ -31,10 +31,44 @@ def references(settings: Any) -> dict[str, str]:
     }
 
 
+def _resolve_all(settings: Any) -> tuple[int, dict[str, SopsError]]:
+    failures: dict[str, SopsError] = {}
+    count = 0
+    for item in iter_items(_store(settings)):
+        if is_reference_lazy(item.value):
+            count += 1
+            try:
+                item.value(settings)
+            except SopsError as exc:
+                failures[item.path] = exc
+        elif is_reference_string(item.value):
+            count += 1
+            failures[item.path] = SopsError(
+                f"{item.value!r} was not converted: import dynaconf_sops before "
+                "the settings are loaded or add 'dynaconf_sops.loader' to "
+                "LOADERS_FOR_DYNACONF",
+                reference=item.value[len("@sops") :].strip(),
+            )
+    return count, failures
+
+
+def check(settings: Any) -> dict[str, SopsError]:
+    """Resolve every ``@sops`` reference once and return the failures by key.
+
+    Like ``verify()``, but nothing is raised for reference problems: the result
+    maps each failing key (same format as ``references()``) to its
+    ``SopsError``; an empty dict means every reference resolved. Successful
+    values are cached and stay in the settings; the result never contains a
+    value. Use it to load everything and report broken references per key.
+    """
+    return _resolve_all(settings)[1]
+
+
 def verify(settings: Any) -> int:
     """Resolve every ``@sops`` reference once (fail fast at service start).
 
     Successful values are cached, so later access does not run sops again.
+    ``verify()`` is ``check()`` plus one aggregated error.
 
     Returns:
         The number of references resolved.
@@ -45,30 +79,9 @@ def verify(settings: Any) -> int:
             was registered after the settings were loaded and the loader is
             not active) counts as a failure.
     """
-    failures: list[tuple[str, SopsError]] = []
-    count = 0
-    for item in iter_items(_store(settings)):
-        if is_reference_lazy(item.value):
-            count += 1
-            try:
-                item.value(settings)
-            except SopsError as exc:
-                failures.append((item.path, exc))
-        elif is_reference_string(item.value):
-            count += 1
-            failures.append(
-                (
-                    item.path,
-                    SopsError(
-                        f"{item.value!r} was not converted: import dynaconf_sops before "
-                        "the settings are loaded or add 'dynaconf_sops.loader' to "
-                        "LOADERS_FOR_DYNACONF",
-                        reference=item.value[len("@sops") :].strip(),
-                    ),
-                )
-            )
+    count, failures = _resolve_all(settings)
     if failures:
         lines = [f"{len(failures)} of {count} @sops reference(s) failed:"]
-        lines += [f"  {path}: {exc}" for path, exc in failures]
-        raise SopsError("\n".join(lines), errors=[exc for _, exc in failures])
+        lines += [f"  {path}: {exc}" for path, exc in failures.items()]
+        raise SopsError("\n".join(lines), errors=list(failures.values()))
     return count

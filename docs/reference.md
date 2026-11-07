@@ -42,6 +42,14 @@ Raises one `SopsError` listing all failures (`errors` holds them). A
 `"@sops ..."` string that was never converted counts as a failure. Successful
 values are cached.
 
+### `check(settings) -> dict[str, SopsError]`
+
+Resolve every `@sops` reference once, like `verify()`, but return the
+failures instead of raising: a dict from key (same format as `references()`)
+to its `SopsError`; empty if every reference resolved. Successful values are
+cached and stay in the settings; the result never contains a value.
+`verify()` is `check()` plus one aggregated error.
+
 ### `references(settings) -> dict[str, str]`
 
 Map each setting holding a reference to the reference text, without

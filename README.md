@@ -167,6 +167,10 @@ import dynaconf_sops
 # Fail fast at service start: decrypt every reference once, report all failures.
 dynaconf_sops.verify(settings)
 
+# Or collect failures per key without raising: {"DATABASE.password": SopsError(...)}
+for key, error in dynaconf_sops.check(settings).items():
+    print(f"{key}: {error}")
+
 # Diagnostics without decrypting anything.
 print(dynaconf_sops.references(settings))
 # {'DATABASE.password': '@sops mariadb:users.app.password', ...}

@@ -170,6 +170,17 @@ references. Use it at service start so a missing key is reported immediately
 and not at the first request. It also reports `"@sops ..."` strings that were
 never converted.
 
+To load everything and fail only where a broken reference is needed, use
+`check()`: it resolves every reference once and returns `{key: SopsError}`
+for the failures without raising. Keys have the `references()` format
+(top-level key upper case):
+
+```python
+failures = dynaconf_sops.check(settings)
+if "FRESHRSS.password" in failures:
+    log.warning("FreshRSS disabled: %s", failures["FRESHRSS.password"])
+```
+
 ## Redacting logs
 
 `dynaconf_sops.secret_values()` returns the non-empty strings decrypted so

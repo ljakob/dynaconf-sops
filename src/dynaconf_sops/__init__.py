@@ -17,7 +17,7 @@ import importlib.metadata as _metadata
 from ._cache import clear_cache, secret_values
 from ._converter import TOKEN, register
 from ._errors import SopsError
-from ._helpers import references, verify
+from ._helpers import check, references, verify
 
 try:
     __version__: str = _metadata.version("dynaconf-sops")
@@ -30,6 +30,7 @@ __all__ = [
     "TOKEN",
     "SopsError",
     "__version__",
+    "check",
     "clear_cache",
     "references",
     "register",
