@@ -45,11 +45,13 @@ def _keygen(path: Path) -> str:
 def _clean_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     for name in ENV_VARS:
         monkeypatch.delenv(name, raising=False)
-    from dynaconf_sops import _cache
+    from dynaconf_sops import _cache, _converter
 
     _cache.clear_cache()
+    _converter._reset_for_tests()
     yield
     _cache.clear_cache()
+    _converter._reset_for_tests()
 
 
 @pytest.fixture(scope="session")
@@ -123,3 +125,45 @@ def write_stub(path: Path, body: str) -> Path:
     path.write_text("#!/bin/sh\n" + body + "\n")
     path.chmod(0o755)
     return path
+
+
+@dataclass(frozen=True)
+class CountingSops:
+    """A stub sops binary: prints ``value-<extract expression>``, logs every call."""
+
+    bin: Path
+    log: Path
+
+    def calls(self) -> list[str]:
+        return self.log.read_text().splitlines() if self.log.exists() else []
+
+
+@pytest.fixture
+def counting_sops(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> CountingSops:
+    log = tmp_path / "sops-calls.log"
+    (tmp_path / "stub-bin").mkdir()
+    stub = write_stub(
+        tmp_path / "stub-bin" / "sops",
+        f"""echo "$*" >> {log}
+expr=""
+while [ $# -gt 1 ]; do
+  if [ "$1" = "--extract" ]; then expr="$2"; fi
+  shift
+done
+printf 'value-%s' "$expr"
+""",
+    )
+    monkeypatch.setenv("DYNACONF_SOPS_BIN", str(stub))
+    return CountingSops(bin=stub, log=log)
+
+
+@pytest.fixture
+def write(tmp_path: Path) -> Callable[[str, str], Path]:
+    """Write a plaintext settings file into ``tmp_path`` and return its path."""
+
+    def _write(name: str, content: str) -> Path:
+        path = tmp_path / name
+        path.write_text(content)
+        return path
+
+    return _write

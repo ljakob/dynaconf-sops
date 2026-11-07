@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import os
 import threading
+from collections.abc import Callable
 from typing import Any
 
 from ._config import Config
@@ -38,12 +39,20 @@ def _collect_strings(value: Any, out: set[str]) -> None:
             _collect_strings(item, out)
 
 
-def lookup(ref: Reference, config: Config) -> Any:
-    """Return the decrypted value, from the cache if the file is unchanged."""
+def lookup(ref: Reference, config: Config | Callable[[], Config]) -> Any:
+    """Return the decrypted value, from the cache if the file is unchanged.
+
+    ``config`` may be a callable; it is only called when sops has to run, so a
+    cache hit does not need the sops binary.
+    """
+
+    def get_config() -> Config:
+        return config if isinstance(config, Config) else config()
+
     try:
         st = os.stat(ref.file)
     except OSError:
-        return decrypt(ref, config)  # raises a SopsError with a clear message
+        return decrypt(ref, get_config())  # raises a SopsError with a clear message
     ident = (str(ref.file), ref.expr)
     key: _CacheKey = (*ident, st.st_mtime_ns, st.st_size)
 
@@ -56,7 +65,7 @@ def lookup(ref: Reference, config: Config) -> Any:
         with _lock:
             if key in _values:
                 return copy.deepcopy(_values[key])
-        value = decrypt(ref, config)
+        value = decrypt(ref, get_config())
         with _lock:
             for stale in [k for k in _values if k[:2] == ident]:
                 del _values[stale]

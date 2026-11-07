@@ -44,6 +44,7 @@ dev = [
     "pytest-cov>=5",
     "ruff>=0.6",
     "mypy>=1.11",
+    "jinja2>=3",
 ]
 
 [tool.hatch.build.targets.wheel]
