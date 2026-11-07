@@ -46,6 +46,9 @@ def _run(ref: Reference, config: Config, output_type: str) -> bytes:
     if ref.expr is not None:
         cmd += ["--extract", ref.expr]
     cmd.append(str(ref.file))
+    # Errors are raised outside the except blocks so that no exception context
+    # (which may hold partial sops output) stays attached to the SopsError.
+    reason: str | None = None
     try:
         result = subprocess.run(
             cmd,
@@ -56,9 +59,11 @@ def _run(ref: Reference, config: Config, output_type: str) -> bytes:
             check=False,
         )
     except subprocess.TimeoutExpired:
-        raise _fail(ref, f"sops timed out after {config.timeout:g} s") from None
+        reason = f"sops timed out after {config.timeout:g} s"
     except OSError as exc:
-        raise _fail(ref, f"cannot run sops {config.sops_bin!r}: {exc.strerror or exc}") from None
+        reason = f"cannot run sops {config.sops_bin!r}: {exc.strerror or type(exc).__name__}"
+    if reason is not None:
+        raise _fail(ref, reason)
     if result.returncode != 0:
         raise _fail(
             ref,
@@ -72,7 +77,8 @@ def _text(ref: Reference, data: bytes) -> str:
     try:
         return data.decode("utf-8")
     except UnicodeDecodeError:
-        raise _fail(ref, "decrypted value is not valid UTF-8") from None
+        pass  # the exception holds the value; raise outside the handler
+    raise _fail(ref, "decrypted value is not valid UTF-8")
 
 
 def decrypt(ref: Reference, config: Config) -> Any:
@@ -102,7 +108,9 @@ def decrypt(ref: Reference, config: Config) -> Any:
 
 
 def _parse_json(ref: Reference, data: bytes) -> Any:
+    text = _text(ref, data)
     try:
-        return json.loads(_text(ref, data))
+        return json.loads(text)
     except json.JSONDecodeError:
-        raise _fail(ref, "sops output is not valid JSON") from None
+        pass  # the exception holds the document; raise outside the handler
+    raise _fail(ref, "sops output is not valid JSON")

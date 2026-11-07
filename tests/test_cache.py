@@ -11,7 +11,7 @@ from dynaconf_sops._config import Config
 from dynaconf_sops._errors import SopsError
 from dynaconf_sops._reference import parse_reference
 
-from .conftest import MakeSops, write_stub
+from .conftest import CountingSops, MakeSops, write_stub
 
 
 @pytest.fixture
@@ -142,3 +142,59 @@ def test_containers_are_copied(make_sops: MakeSops, sops_bin: str) -> None:
     assert _cache.secret_values() == {"u", "secret-pw"}
     _cache.lookup(parse_reference(f"{target}#l"), cfg)
     assert _cache.secret_values() == {"u", "secret-pw", "x", "y"}
+
+
+def test_rotation_through_dynaconf(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, counting_sops: CountingSops
+) -> None:
+    """A changed SOPS file is picked up on the next access, without restart.
+
+    Dynaconf 3.3 caches top-level *attribute* access (``settings.TOKEN``,
+    ``settings["token"]``) until ``reload()``/``set()``; ``settings.get()`` and
+    nested keys are re-evaluated. Documented in docs/usage.md.
+    """
+    from dynaconf import Dynaconf
+
+    d = tmp_path / "sops"
+    d.mkdir()
+    secret = d / "m.sops.yaml"
+    secret.write_text("v: 1\n")
+    monkeypatch.setenv("DYNACONF_SOPS_DIR", str(d))
+    cfg = tmp_path / "s.yaml"
+    cfg.write_text('token: "@sops m:t"\ndb:\n  pw: "@sops m:pw"\n')
+    settings = Dynaconf(settings_files=[cfg])
+    assert settings.db.pw == 'value-["pw"]'
+    assert settings.token == 'value-["t"]'
+    assert len(counting_sops.calls()) == 2
+
+    secret.write_text("v: 22\n")  # rotated: size changes
+    assert settings.db.pw == 'value-["pw"]'
+    assert settings.get("token") == 'value-["t"]'
+    assert len(counting_sops.calls()) == 4  # both decrypted again
+    _ = settings.token  # 3.3: Dynaconf's attribute cache; 3.2: our cache hit
+    assert len(counting_sops.calls()) == 4
+
+
+def test_dynaconf_33_caches_top_level_attributes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from dynaconf import Dynaconf
+
+    from .conftest import DYNACONF_VERSION
+
+    value = tmp_path / "value.txt"
+    value.write_text("old")
+    stub = write_stub(tmp_path / "sops", f"cat {value}")
+    monkeypatch.setenv("DYNACONF_SOPS_BIN", str(stub))
+    secret = _target(tmp_path)
+    cfg = tmp_path / "s.yaml"
+    cfg.write_text(f'token: "@sops {secret}#t"\n')
+    settings = Dynaconf(settings_files=[cfg])
+    assert settings.token == "old"
+    value.write_text("new")
+    secret.write_text("a: 22\n")
+    assert settings.get("token") == "new"
+    stale = DYNACONF_VERSION >= (3, 3, 0)
+    assert settings.token == ("old" if stale else "new")
+    settings.reload()
+    assert settings.token == "new"
