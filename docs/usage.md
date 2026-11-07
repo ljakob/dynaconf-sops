@@ -112,9 +112,10 @@ accessed: `settings.database.password`, `settings.get("database.password")`,
 (see [reference.md](reference.md#how-sops-is-called)); afterwards the value
 comes from the cache.
 
-Accessing a whole section evaluates all references in it:
-`settings.database`, `repr(settings.database)`, `settings.as_dict()`,
-`dynaconf list`. Keep secrets in sections you do not dump.
+Getting a section (`settings.database`) decrypts nothing; rendering it does:
+`repr(settings.database)`, `print(settings.database)`, `settings.as_dict()`
+and `dynaconf list` evaluate every reference they show. Keep secrets in
+sections you do not dump.
 
 ## Caching and rotation
 

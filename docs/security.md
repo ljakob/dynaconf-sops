@@ -37,7 +37,8 @@ dumps, debuggers, `as_dict()`), and protecting the key itself.
   reference to `users.app.password` never decrypts `root_password` into the
   process.
 - **Laziness**: loading settings (files, environment, `reload()`) never runs
-  sops when the loader is used. See the exceptions below.
+  sops when the loader is used and the package was not imported before the
+  settings object was created. See the exceptions below.
 - **Environment**: inherited unchanged, so sops' own key discovery applies.
 
 ## What dumps show
