@@ -127,6 +127,7 @@ def make_sops(
 
 def write_stub(path: Path, body: str) -> Path:
     """Write an executable shell script used as a fake sops binary."""
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("#!/bin/sh\n" + body + "\n")
     path.chmod(0o755)
     return path
